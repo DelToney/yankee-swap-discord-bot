@@ -6,6 +6,9 @@ export abstract class AddGame {
     @Command("addgame :gameCode :gameLink")
     @Guard(DMOnly)
   async addGame(command: CommandMessage) {
-      console.log(command.args);
+    debugger
+    const { gameCode, gameLink } = command.args;
+    currentGameState.giftPool[command.author.id] = { gameCode, gameLink };
+    console.log(currentGameState.giftPool);
   }
 }

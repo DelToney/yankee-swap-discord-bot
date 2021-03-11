@@ -15,11 +15,9 @@ export abstract class DiscordApp {
     client: Client
   ) {
     if (message.channel.type === 'dm' && !message.author.bot) {
-      setTimeout(() => {
-        console.log(message);
-        const messageEmbedded: MessageEmbed = message.embeds[0];
-        message.reply('squa', {embed: messageEmbedded})
-      }, 3000);
+      console.log(message);
+      const messageEmbedded: MessageEmbed = message.embeds[0];
+      message.reply('squa', {embed: messageEmbedded})
       
     }
   }
