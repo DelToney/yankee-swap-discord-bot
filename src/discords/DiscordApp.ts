@@ -1,29 +1,20 @@
-import { CommandNotFound, Discord, Command, CommandMessage, On, ArgsOf, Client } from "@typeit/discord";
-import { MessageEmbed } from "discord.js";
-import * as Path from "path";
+import { CommandNotFound, Discord, Command, CommandMessage, On, ArgsOf, Client, Guard } from '@typeit/discord';
+import { Guild, MessageEmbed } from 'discord.js';
+import * as Path from 'path';
+import { SpecificUser } from '../guards/SpecificUsersOnly';
 
-@Discord("!", {
-  import: [
-    Path.join(__dirname, '..', 'commands', '*.ts'),
-    Path.join(__dirname, '..', 'commands', '*.js'),
-  ]
+@Discord('!', {
+    import: [Path.join(__dirname, '..', 'commands', '*.ts'), Path.join(__dirname, '..', 'commands', '*.js')],
 })
 export abstract class DiscordApp {
-  @On("message")
-  onMessage(
-    [message]: ArgsOf<"message">,
-    client: Client
-  ) {
-    if (message.channel.type === 'dm' && !message.author.bot) {
-      console.log(message);
-      const messageEmbedded: MessageEmbed = message.embeds[0];
-      message.reply('squa', {embed: messageEmbedded})
-      
+    @On('message')
+    @Guard(SpecificUser(['110862236636971008']))
+    onMessage([message]: ArgsOf<'message'>, client: Client) {
+        message.channel.send('<:poggedoutofmygord:814726053176147978>');
     }
-  }
 
-  @CommandNotFound()
-  notFoundA(command: CommandMessage) {
-    command.reply("Command not found");
-  }
+    @CommandNotFound()
+    notFoundA(command: CommandMessage) {
+        command.reply('Command not found');
+    }
 }
