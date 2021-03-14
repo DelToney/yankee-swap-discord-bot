@@ -1,18 +1,20 @@
-import { Command, CommandMessage } from "@typeit/discord";
-import currentGameState, { Gamer } from "../util/stateManager";
+import { Command, CommandMessage, Guard } from '@typeit/discord';
+import { ChannelOnly } from '../guards/ChannelOnly';
+import { GameNotStarted } from '../guards/GameNotStarted';
+import { generateTurnOrder, listPlayerOrder, startTurn } from '../util/gameFunctions';
+import currentGameState from '../util/stateManager';
 
 export abstract class Begin {
-  @Command("begin")
-  async begin(command: CommandMessage) {
-    generateTurnOrder(currentGameState.registeredGamers);
-    command.reply("the game has begun!");
-    currentGameState.begun = true;
+    @Command('begin')
+    @Guard(GameNotStarted, ChannelOnly)
+    async begin(command: CommandMessage) {
+        generateTurnOrder(currentGameState.registeredGamers);
+        currentGameState.gameChannel = command.channel;
+        currentGameState.currentTurn = 1;
+        listPlayerOrder();
+        currentGameState.begun = true;
+        command.channel.send('the game has begun!');
 
-  }
-}
-
-function generateTurnOrder (registeredGamers: Gamer[]) {
-  registeredGamers.forEach((gamer, i) => {
-    gamer.turnNumber = i; //TODO: Make this random from 0-list length and unique
-  })
+        startTurn({ gamer: currentGameState.registeredGamers.find((gmr) => gmr.turnNumber === 1) });
+    }
 }

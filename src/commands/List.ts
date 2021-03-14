@@ -1,28 +1,10 @@
-import { Command, CommandMessage, Guard } from "@typeit/discord";
-import { DMOnly } from "../guards/DMOnly";
-import { Game } from "../util/stateManager"
-import currentGameState from "../util/stateManager";
-import { NotBot } from "../guards/NotBot";
-import * as turnOrderTemplate from "../util/playerOrderTemplate.json"
-import { MessageEmbedOptions } from "discord.js";
-import { getTypeParameterOwner } from "typescript";
-
+import { Command, CommandMessage, Guard } from '@typeit/discord';
+import { NotBot } from '../guards/NotBot';
+import { listPlayerOrder } from '../util/gameFunctions';
 export abstract class ListPlayerOrder {
-    @Command("list")
-    @Guard(DMOnly, NotBot)
-  async listPlayerOrder(command: CommandMessage) {
-    const playerOrderEmbed: MessageEmbedOptions = turnOrderTemplate;
-
-    const sortedGames = currentGameState.registeredGamers.sort((a, b) => a.turnNumber - b.turnNumber);
-
-    sortedGames.forEach((gamer, i) => {
-      playerOrderEmbed.fields.push({
-        name:  gamer.user.username,
-        value: `    ${i + 1}`,
-      })
+    @Command('list')
+    @Guard(NotBot)
+    async list(command: CommandMessage) {
+        await listPlayerOrder(command);
     }
-    )
-
-    command.reply('', { embed: playerOrderEmbed })
-  }
 }

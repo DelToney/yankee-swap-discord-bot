@@ -3,12 +3,9 @@
         "module": "commonjs",
         "moduleResolution": "node",
         "target": "esnext",
-        "lib": [
-            "es6",
-            "dom"
-        ],
+        "lib": ["es6", "dom"],
         "sourceMap": true,
-        
+
         "types": [
             // add node as an option
             "node",
@@ -23,8 +20,5 @@
         "resolveJsonModule": true,
         "outDir": "./dist"
     },
-    "exclude": [
-        "node_modules",
-        "example"
-    ]
+    "exclude": ["node_modules", "example"]
 }
