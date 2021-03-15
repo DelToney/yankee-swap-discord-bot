@@ -13,7 +13,6 @@ export abstract class Begin {
             generateTurnOrder(currentGameState.registeredGamers);
             currentGameState.gameChannel = command.channel as TextChannel;
             currentGameState.currentTurn = 1;
-            listPlayerOrder();
             currentGameState.begun = true;
             command.channel.send('the game has begun!');
             startTurn();

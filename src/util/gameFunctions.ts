@@ -5,7 +5,24 @@ import currentGameState, { Game, Gamer } from './stateManager';
 
 const stealEmoji = '😈';
 const giftEmoji = '🎁';
-const validPlayerGiftEmojis = ['🎁', '📦', '🗳', '🗃'];
+const validPlayerGiftEmojis = [
+    '<:PresentEmojiyp:820867491727147048>',
+    '<:PresentEmojiob:820867711336448060>',
+    '<:PresentEmojiyp:820867636728299541>',
+    '<:PresentEmojigr:820867319231414333>',
+    '<:PresentEmojirg:820867347074121738>',
+    '<:PresentEmojigp:820867183184969789>',
+    '<:PresentEmojiby:820867372650463262>',
+    '<:PresentEmojirb:820867285039185980>',
+    '<:PresentEmojibr:820867458738552832>',
+    '<:PresentEmojipy:820867255944216587>',
+    '<:PresentEmojibo:820867518373560350>',
+    '<:PresentEmojipy:820867687978500147>',
+    '<:PresentEmojibbp:820867579261485066>',
+    '<:PresentEmojipg:820867550920966194>',
+    '<:PresentEmojipbb:820867407349284884>',
+    '<:PresentEmojiob:820867609087443014>',
+];
 
 export async function nextTurn() {
     currentGameState.currentTurn += 1;
@@ -23,18 +40,20 @@ export async function startTurn() {
     }
 
     const decisionFilter: CollectorFilter = (reaction, user) => {
-        return availableGames.map(([id, gme]) => gme.emoji).includes(reaction.emoji.name);
+        return availableGames.map(([id, gme]) => gme.emoji).includes(`<:${reaction.emoji.identifier}>`);
     };
     // maybe we find a way to not have this be an event handler but for right now we'll just use it
     const selectGiftDecisionCollector = await selectGiftDecisionMessage.createReactionCollector(decisionFilter);
     selectGiftDecisionCollector.once('collect', async (reaction: MessageReaction, user) => {
-        await selectGiftDecisionMessage.delete();
         const selectedGift: Game = [...currentGameState.giftPool.entries()].find(
-            ([uid, gme]) => gme.emoji === reaction.emoji.name,
+            ([uid, gme]) => gme.emoji === `<:${reaction.emoji.identifier}>`,
         )[1];
-        currentGameState.gameChannel.send(`${gamer.user.username} recieved \`GAMEINFOHERE\``);
-        gamer.user.send(`You recieved \`GAMEINFOHERE\``);
+        currentGameState.gameChannel.send(`${gamer.user.username} recieved \`${selectedGift.embed.title}\``, {
+            embed: selectedGift.embed,
+        });
+        gamer.user.send(`You recieved \`${selectedGift.embed.title}\``, { embed: selectedGift.embed });
 
+        await selectGiftDecisionMessage.delete();
         selectGiftDecisionCollector.stop('Decision Made');
 
         const actionDecisionMessage = await gamer.user.send('Stay or Steal?');

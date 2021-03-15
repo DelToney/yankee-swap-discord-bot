@@ -5,8 +5,8 @@ export class Game {
     gameLink!: string;
     donator!: User;
     emoji?: EmojiResolvable;
+    embed?: MessageEmbed;
     currentGiftHolder?: User = null;
-    embed?: MessageEmbed = null;
 }
 
 export class Gamer {

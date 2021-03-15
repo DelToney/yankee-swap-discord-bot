@@ -10,7 +10,7 @@ export abstract class DiscordApp {
     @On('message')
     @Guard(SpecificUser(['110862236636971008']))
     onMessage([message]: ArgsOf<'message'>, client: Client) {
-        message.channel.send('<:poggedoutofmygord:814726053176147978>');
+        console.log(message);
     }
 
     @CommandNotFound()
