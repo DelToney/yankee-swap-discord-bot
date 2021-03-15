@@ -14,7 +14,7 @@ export abstract class AddGame {
         }
         const { gameKey, gameLink } = command.args;
         const newGameSubmission: Game = { gameKey, gameLink, donator: command.author };
-        currentGameState.giftPool[command.author.id] = newGameSubmission;
+        currentGameState.giftPool.set(command.author.id, newGameSubmission);
         currentGameState.registeredGamers.push({
             user: command.author,
         });

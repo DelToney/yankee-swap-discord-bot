@@ -5,6 +5,14 @@ export abstract class ListPlayerOrder {
     @Command('list')
     @Guard(NotBot)
     async list(command: CommandMessage) {
-        await listPlayerOrder(command);
+        try {
+            await listPlayerOrder();
+        } catch (err) {
+            if (err.message === 'Not enough registered players!') {
+                command.channel.send('Not enough registered players!');
+            } else {
+                console.error(err);
+            }
+        }
     }
 }

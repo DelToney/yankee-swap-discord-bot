@@ -1,9 +1,10 @@
-import { Channel, MessageEmbed, User } from 'discord.js';
+import { Channel, EmojiResolvable, MessageEmbed, TextChannel, User } from 'discord.js';
 
 export class Game {
     gameKey!: string;
     gameLink!: string;
     donator!: User;
+    emoji?: EmojiResolvable;
     currentGiftHolder?: User = null;
     embed?: MessageEmbed = null;
 }
@@ -17,9 +18,13 @@ export class Gamer {
 class GameState {
     begun: boolean = false;
     currentTurn: number;
-    gameChannel: Channel;
+    gameChannel: TextChannel;
     giftPool: Map<User['id'], Game> = new Map();
     registeredGamers: Gamer[] = [];
+
+    getAvailableGames() {
+        return [...this.giftPool.entries()].filter(([id, game]) => !game.currentGiftHolder);
+    }
 }
 
 const currentGameState = new GameState();
