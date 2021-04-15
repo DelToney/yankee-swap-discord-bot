@@ -7,11 +7,11 @@ import { SpecificUser } from '../guards/SpecificUsersOnly';
     import: [Path.join(__dirname, '..', 'commands', '*.ts'), Path.join(__dirname, '..', 'commands', '*.js')],
 })
 export abstract class DiscordApp {
-    @On('message')
-    @Guard(SpecificUser(['110862236636971008']))
-    onMessage([message]: ArgsOf<'message'>, client: Client) {
-        console.log(message);
-    }
+    //     @On('message')
+    //     @Guard(SpecificUser(['110862236636971008']))
+    //     onMessage([message]: ArgsOf<'message'>, client: Client) {
+    //         message.reply('<poggedoutofmygord:823020872004009995>');
+    //     }
 
     @CommandNotFound()
     notFoundA(command: CommandMessage) {

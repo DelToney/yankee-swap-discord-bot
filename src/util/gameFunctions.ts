@@ -1,6 +1,15 @@
 import { CommandMessage } from '@typeit/discord';
 import * as turnOrderTemplate from '../util/playerOrderTemplate.json';
-import { CollectorFilter, Message, MessageEmbedOptions, MessageReaction, ReactionEmoji } from 'discord.js';
+import {
+    Channel,
+    CollectorFilter,
+    Message,
+    MessageEmbedOptions,
+    MessageOptions,
+    MessageReaction,
+    ReactionEmoji,
+    TextChannel,
+} from 'discord.js';
 import currentGameState, { Game, Gamer } from './stateManager';
 
 const stealEmoji = '😈';
@@ -56,7 +65,7 @@ export async function startTurn() {
         await selectGiftDecisionMessage.delete();
         selectGiftDecisionCollector.stop('Decision Made');
 
-        const actionDecisionMessage = await gamer.user.send('Stay or Steal?');
+        const actionDecisionMessage = await gamer.user.send('Stay or Steal?'); // PROMPT
 
         await actionDecisionMessage.react(stealEmoji);
         await actionDecisionMessage.react(giftEmoji);
@@ -71,6 +80,8 @@ export async function startTurn() {
                     nextTurn();
                     return;
                 case stealEmoji:
+                    steal();
+                    return;
             }
 
             actionDecisionCollector.stop('Decision Made');
@@ -78,9 +89,51 @@ export async function startTurn() {
     });
 }
 
-export async function listPlayerOrder() {
+export async function steal() {
+    const gamer = currentGameState.registeredGamers.find((gmr) => gmr.turnNumber === currentGameState.currentTurn);
+
+    const robbablePlayers = currentGameState.registeredGamers.filter((gmr) => gmr.selectedGift);
+
+    const theftMessageOptions: MessageOptions = { content: "Who's gift do you want to steal?" };
+
+    for (let player of robbablePlayers) {
+        theftMessageOptions.embed = {
+            title: 'Fools to rob from:',
+            fields: [
+                {
+                    name: player.user.username,
+                    value: `${player.selectedGift.emoji} - ${player.selectedGift.gameTitle}`,
+                },
+            ],
+        };
+    }
+    const theftMessage = (await gamer.user.send(theftMessageOptions)) as Message; // PROMPT
+    for (let player of robbablePlayers) {
+        await theftMessage.react(player.selectedGift.emoji);
+    }
+
+    const theftFilter: CollectorFilter = (reaction: ReactionEmoji, user) => {
+        return robbablePlayers.map((e) => e.selectedGift.emoji).includes(reaction.identifier);
+    };
+
+    // maybe we find a way to not have this be an event handler but for right now we'll just use it
+    const theftCollector = await theftMessage.createReactionCollector(theftFilter);
+    theftCollector.once('collect', (reaction: MessageReaction, user) => {
+        switch (reaction.emoji.name) {
+            case giftEmoji:
+                nextTurn();
+                return;
+            case stealEmoji:
+                steal();
+                return;
+        }
+
+        theftCollector.stop('Decision Made');
+    });
+}
+
+export async function listPlayerOrder(channel?: TextChannel) {
     if (currentGameState.giftPool.size <= 0) {
-        debugger;
         // change this to 2
         throw new Error('Not enough registered players!');
     }
@@ -91,15 +144,20 @@ export async function listPlayerOrder() {
     const sortedGames = currentGameState.registeredGamers.sort((a, b) => a.turnNumber - b.turnNumber);
 
     sortedGames.forEach((gamer, i) => {
+        const giftText = gamer.selectedGift ? ` - ${gamer.selectedGift.gameTitle} ${gamer.selectedGift.emoji}` : '';
         if (currentGameState.currentTurn === i + 1) {
             playerOrderEmbed.description += `**${i + 1}.** 
-            ${currentGameState.giftPool.get(gamer.user.id).emoji} ${gamer.user.username}\n`;
+            ${currentGameState.giftPool.get(gamer.user.id).emoji} ${gamer.user.username}${giftText}\n`;
         } else {
             playerOrderEmbed.description += `${i + 1}. 
-            ${currentGameState.giftPool.get(gamer.user.id).emoji} ${gamer.user.username}\n`;
+            ${currentGameState.giftPool.get(gamer.user.id).emoji} ${gamer.user.username}${giftText}\n`;
         }
     });
-    currentGameState.gameChannel.send('', { embed: playerOrderEmbed });
+    if (channel) {
+        channel.send('', { embed: playerOrderEmbed });
+    } else {
+        currentGameState.gameChannel.send('', { embed: playerOrderEmbed });
+    }
 }
 
 export function generateTurnOrder(registeredGamers: Gamer[]) {

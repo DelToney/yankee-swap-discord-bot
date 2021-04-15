@@ -19,7 +19,6 @@ export abstract class Debug {
                 return;
             default:
                 try {
-                    debugger;
                     const inputStateStringMatch = command.content.match(/```[^{]*(\{[\s\S]*)```/imu);
                     let inputState;
                     eval('inputState = ' + inputStateStringMatch[1]);

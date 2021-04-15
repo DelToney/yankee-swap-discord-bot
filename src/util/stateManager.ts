@@ -2,6 +2,7 @@ import { Channel, EmojiResolvable, MessageEmbed, TextChannel, User } from 'disco
 
 export class Game {
     gameKey!: string;
+    gameTitle!: string;
     gameLink!: string;
     donator!: User;
     emoji?: EmojiResolvable;
