@@ -11,10 +11,14 @@ export abstract class Debug {
     async debug(command: CommandMessage) {
         switch (command.args.debugCommand) {
             case 'gameState':
-                command.reply(`\`\`\`json\n${JSON.stringify(currentGameState)}\n\`\`\``);
+                console.log(JSON.stringify(currentGameState));
                 return;
             case 'restart':
                 currentGameState.currentTurn = 1;
+                currentGameState.registeredGamers = currentGameState.registeredGamers.map((gmr) => ({
+                    ...gmr,
+                    selectedGift: null,
+                }));
                 startTurn();
                 return;
             default:

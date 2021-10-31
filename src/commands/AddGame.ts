@@ -6,6 +6,7 @@ import { NotBot } from '../guards/NotBot';
 import { PreGame } from '../guards/PreGame';
 import { Unregistered } from '../guards/Unregistered';
 import { Message, MessageCollector } from 'discord.js';
+import { messages } from '../util/script.i18n';
 
 export abstract class AddGame {
     @Command('addgame :gameKey  :gameLink')
@@ -18,29 +19,30 @@ export abstract class AddGame {
             const newGameSubmission: Game = {
                 gameKey,
                 gameLink,
+                claimed: false,
                 gameTitle: '',
                 donator: command.author,
                 embed: embeds.length ? embeds[0] : null,
             };
 
-            if (gameLink.includes('store.steampowered')) {
+            if (gameLink && gameLink.includes('store.steampowered')) {
                 newGameSubmission.gameTitle = embeds[0].title;
-                currentGameState.giftPool.set(command.author.id, newGameSubmission);
+                currentGameState.giftPool[command.author.id] = newGameSubmission;
                 currentGameState.registeredGamers.push({
                     user: command.author,
                 });
-                command.reply('Game successfully added!');
+                command.reply(messages.gameAdded);
             } else {
-                await command.channel.send('What is the title of the game youre giving?'); // PROMPT
+                await command.channel.send(messages.addGameTitlePrompt); // PROMPT
                 // maybe we find a way to not have this be an event handler but for right now we'll just use it
                 const gameTitleCollector = await command.channel.createMessageCollector((m: Message) => !!m.content);
                 gameTitleCollector.once('collect', (message: Message, user) => {
                     newGameSubmission.gameTitle = message.content;
-                    currentGameState.giftPool.set(command.author.id, newGameSubmission);
+                    currentGameState.giftPool[command.author.id] = newGameSubmission;
                     currentGameState.registeredGamers.push({
                         user: command.author,
                     });
-                    command.reply('Game successfully added!');
+                    command.reply(messages.gameAdded);
                     gameTitleCollector.stop('Title recieved');
                 });
             }

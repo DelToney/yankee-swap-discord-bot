@@ -1,11 +1,10 @@
 import { Command, CommandMessage } from '@typeit/discord';
+import { messages } from '../util/script.i18n';
 import currentGameState from '../util/stateManager';
 
 export abstract class Register {
     @Command('register')
     async register(command: CommandMessage) {
-        const welcomeMessage = await command.author.send(
-            "Welcome to Del's awful Yankee swap bot!\n\n Simply message me with the command `!addgame <INSERT_GAME_CODE_HERE> <INSERT_GAME_LINK_HERE>` to add your game to the yankee swap! Make sure not to let anyone else know about your gift though!",
-        );
+        const welcomeMessage = await command.author.send(messages.addGameHelpMessage);
     }
 }

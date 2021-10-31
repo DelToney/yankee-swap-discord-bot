@@ -9,8 +9,10 @@ import {
     MessageReaction,
     ReactionEmoji,
     TextChannel,
+    User,
 } from 'discord.js';
-import currentGameState, { Game, Gamer } from './stateManager';
+import currentGameState, { Game, Gamer, getUnclaimedGames } from './stateManager';
+import { messages } from './script.i18n';
 
 const stealEmoji = '😈';
 const giftEmoji = '🎁';
@@ -38,104 +40,108 @@ export async function nextTurn() {
     startTurn();
 }
 
+export function updateGamerHeldGame(recieverId: User['id'], donatorId: User['id']) {
+    const recieverIndex = currentGameState.registeredGamers.findIndex((gmr) => recieverId === gmr.user.id);
+    currentGameState.registeredGamers[recieverIndex] = {
+        ...currentGameState.registeredGamers[recieverIndex],
+        selectedGift: donatorId,
+    };
+}
+
 export async function startTurn() {
     const gamer = currentGameState.registeredGamers.find((gmr) => gmr.turnNumber === currentGameState.currentTurn);
-    const selectGiftDecisionMessage = await gamer.user.send('Chose a gift to open!');
+    const actionDecisionMessage = await gamer.user.send(messages.pickActionPrompt()); // PROMPT
 
-    const availableGames = currentGameState.getAvailableGames().filter(([uid, gme]) => uid !== gamer.user.id);
+    await actionDecisionMessage.react(stealEmoji);
+    await actionDecisionMessage.react(giftEmoji);
+    const actionDecisionFilter: CollectorFilter = (reaction, user) => {
+        return reaction.emoji.name === giftEmoji || reaction.emoji.name === stealEmoji;
+    };
+    // maybe we find a way to not have this be an event handler but for right now we'll just use it
+    const actionDecisionCollector = await actionDecisionMessage.createReactionCollector(actionDecisionFilter);
+    actionDecisionCollector.once('collect', (reaction: MessageReaction, user) => {
+        switch (reaction.emoji.name) {
+            case giftEmoji:
+                ChooseGift(gamer);
+                return;
+            case stealEmoji:
+                Steal(gamer);
+                return;
+        }
 
-    for (let [userId, game] of availableGames) {
+        actionDecisionCollector.stop('Decision Made');
+    });
+}
+
+export async function ChooseGift(gamer: Gamer) {
+    const selectGiftDecisionMessage = await gamer.user.send(messages.pickGamePrompt());
+
+    const availableGames = getUnclaimedGames();
+
+    for (let game of availableGames) {
         await selectGiftDecisionMessage.react(game.emoji);
     }
 
     const decisionFilter: CollectorFilter = (reaction, user) => {
-        return availableGames.map(([id, gme]) => gme.emoji).includes(`<:${reaction.emoji.identifier}>`);
+        return availableGames.map((gme) => gme.emoji).includes(`<:${reaction.emoji.identifier}>`);
     };
     // maybe we find a way to not have this be an event handler but for right now we'll just use it
     const selectGiftDecisionCollector = await selectGiftDecisionMessage.createReactionCollector(decisionFilter);
     selectGiftDecisionCollector.once('collect', async (reaction: MessageReaction, user) => {
-        const selectedGift: Game = [...currentGameState.giftPool.entries()].find(
-            ([uid, gme]) => gme.emoji === `<:${reaction.emoji.identifier}>`,
-        )[1];
-        currentGameState.gameChannel.send(`${gamer.user.username} recieved \`${selectedGift.embed.title}\``, {
+        const selectedGift: Game = availableGames.find((gme) => gme.emoji === `<:${reaction.emoji.identifier}>`);
+        updateGamerHeldGame(gamer.user.id, selectedGift.donator.id);
+        currentGameState.gameChannel.send(messages.gamerGotGame(gamer.user.username, selectedGift.gameTitle), {
             embed: selectedGift.embed,
         });
-        gamer.user.send(`You recieved \`${selectedGift.embed.title}\``, { embed: selectedGift.embed });
+        gamer.user.send(messages.youGotGame(selectedGift.gameTitle), { embed: selectedGift.embed });
 
         await selectGiftDecisionMessage.delete();
+        nextTurn();
         selectGiftDecisionCollector.stop('Decision Made');
-
-        const actionDecisionMessage = await gamer.user.send('Stay or Steal?'); // PROMPT
-
-        await actionDecisionMessage.react(stealEmoji);
-        await actionDecisionMessage.react(giftEmoji);
-        const actionDecisionFilter: CollectorFilter = (reaction, user) => {
-            return reaction.emoji.name === giftEmoji || reaction.emoji.name === stealEmoji;
-        };
-        // maybe we find a way to not have this be an event handler but for right now we'll just use it
-        const actionDecisionCollector = await actionDecisionMessage.createReactionCollector(actionDecisionFilter);
-        actionDecisionCollector.once('collect', (reaction: MessageReaction, user) => {
-            switch (reaction.emoji.name) {
-                case giftEmoji:
-                    nextTurn();
-                    return;
-                case stealEmoji:
-                    steal();
-                    return;
-            }
-
-            actionDecisionCollector.stop('Decision Made');
-        });
     });
 }
 
-export async function steal() {
-    const gamer = currentGameState.registeredGamers.find((gmr) => gmr.turnNumber === currentGameState.currentTurn);
-
+export async function Steal(gamer: Gamer) {
     const robbablePlayers = currentGameState.registeredGamers.filter((gmr) => gmr.selectedGift);
 
-    const theftMessageOptions: MessageOptions = { content: "Who's gift do you want to steal?" };
+    const theftMessageOptions: MessageOptions = { content: messages.stealGiftPrompt };
 
     for (let player of robbablePlayers) {
+        const heldGift = currentGameState.giftPool[player.selectedGift];
         theftMessageOptions.embed = {
-            title: 'Fools to rob from:',
+            title: messages.theftMessageListTitle,
             fields: [
                 {
                     name: player.user.username,
-                    value: `${player.selectedGift.emoji} - ${player.selectedGift.gameTitle}`,
+                    value: `${heldGift.emoji} - ${heldGift.gameTitle}`,
                 },
             ],
         };
     }
     const theftMessage = (await gamer.user.send(theftMessageOptions)) as Message; // PROMPT
     for (let player of robbablePlayers) {
-        await theftMessage.react(player.selectedGift.emoji);
+        const heldGift = currentGameState.giftPool[player.selectedGift];
+        await theftMessage.react(heldGift.emoji);
     }
 
     const theftFilter: CollectorFilter = (reaction: ReactionEmoji, user) => {
-        return robbablePlayers.map((e) => e.selectedGift.emoji).includes(reaction.identifier);
+        return robbablePlayers
+            .map((e) => currentGameState.giftPool[e.selectedGift].emoji)
+            .includes(reaction.identifier);
     };
 
     // maybe we find a way to not have this be an event handler but for right now we'll just use it
     const theftCollector = await theftMessage.createReactionCollector(theftFilter);
     theftCollector.once('collect', (reaction: MessageReaction, user) => {
-        switch (reaction.emoji.name) {
-            case giftEmoji:
-                nextTurn();
-                return;
-            case stealEmoji:
-                steal();
-                return;
-        }
-
-        theftCollector.stop('Decision Made');
+        nextTurn();
+        theftCollector.stop(`Decision Made`);
     });
 }
 
 export async function listPlayerOrder(channel?: TextChannel) {
-    if (currentGameState.giftPool.size <= 0) {
-        // change this to 2
-        throw new Error('Not enough registered players!');
+    // change this to 3
+    if (Object.values(currentGameState.giftPool).length <= 0) {
+        throw new Error();
     }
     const playerOrderEmbed: MessageEmbedOptions = turnOrderTemplate;
     //make a fresh list every time
@@ -144,13 +150,14 @@ export async function listPlayerOrder(channel?: TextChannel) {
     const sortedGames = currentGameState.registeredGamers.sort((a, b) => a.turnNumber - b.turnNumber);
 
     sortedGames.forEach((gamer, i) => {
-        const giftText = gamer.selectedGift ? ` - ${gamer.selectedGift.gameTitle} ${gamer.selectedGift.emoji}` : '';
+        const gift = currentGameState.giftPool[gamer.selectedGift];
+        const giftText = gift ? ` - ${gift.gameTitle} ${gift.emoji}` : '';
         if (currentGameState.currentTurn === i + 1) {
             playerOrderEmbed.description += `**${i + 1}.** 
-            ${currentGameState.giftPool.get(gamer.user.id).emoji} ${gamer.user.username}${giftText}\n`;
+            ${currentGameState.giftPool[gamer.user.id].emoji} ${gamer.user.username}${giftText}\n`;
         } else {
             playerOrderEmbed.description += `${i + 1}. 
-            ${currentGameState.giftPool.get(gamer.user.id).emoji} ${gamer.user.username}${giftText}\n`;
+            ${currentGameState.giftPool[gamer.user.id].emoji} ${gamer.user.username}${giftText}\n`;
         }
     });
     if (channel) {
@@ -164,8 +171,8 @@ export function generateTurnOrder(registeredGamers: Gamer[]) {
     const tempEmojis = validPlayerGiftEmojis;
     registeredGamers.forEach((gamer, i) => {
         gamer.turnNumber = i + 1; //TODO: Make this random from 0-list length and unique
-        const game: Game = currentGameState.giftPool.get(gamer.user.id);
+        const game: Game = currentGameState.giftPool[gamer.user.id];
         game.emoji = tempEmojis.pop();
-        currentGameState.giftPool.set(gamer.user.id, game);
+        currentGameState.giftPool[gamer.user.id] = game;
     });
 }

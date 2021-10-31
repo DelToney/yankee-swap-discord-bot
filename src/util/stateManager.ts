@@ -1,4 +1,4 @@
-import { Channel, EmojiResolvable, MessageEmbed, TextChannel, User } from 'discord.js';
+import { EmojiResolvable, MessageEmbed, TextChannel, User } from 'discord.js';
 
 export class Game {
     gameKey!: string;
@@ -7,27 +7,41 @@ export class Game {
     donator!: User;
     emoji?: EmojiResolvable;
     embed?: MessageEmbed;
-    currentGiftHolder?: User = null;
+    claimed: boolean = false;
 }
 
 export class Gamer {
     user!: User;
-    selectedGift?: Game;
+    selectedGift?: keyof GameState['giftPool'];
     turnNumber?: number;
 }
 
-class GameState {
-    begun: boolean = false;
-    currentTurn: number;
-    gameChannel: TextChannel;
-    giftPool: Map<User['id'], Game> = new Map();
-    registeredGamers: Gamer[] = [];
+type GameState = {
+    begun: boolean;
+    currentTurn?: number;
+    gameChannel?: TextChannel;
+    // keyed by discord user id
+    giftPool: { [key: string]: Game };
+    registeredGamers: Gamer[];
+};
 
-    getAvailableGames() {
-        return [...this.giftPool.entries()].filter(([id, game]) => !game.currentGiftHolder);
-    }
+const currentGameState: GameState = {
+    begun: false,
+    giftPool: {},
+    registeredGamers: [],
+};
+
+export function getUnclaimedGames(): Game[] {
+    const claimedGamerIds: (string | number)[] = currentGameState.registeredGamers
+        .map((g) => g.selectedGift)
+        .filter((e) => e);
+    const unclaimedGamers = currentGameState.registeredGamers.filter((gmr) => !claimedGamerIds.includes(gmr.user.id));
+    return unclaimedGamers.map((gmr) => currentGameState.giftPool[gmr.user.id]);
 }
-
-const currentGameState = new GameState();
+export function getClaimedGames(): Game[] {
+    return currentGameState.registeredGamers
+        .filter((e) => e.selectedGift)
+        .map((gmr) => currentGameState.giftPool[gmr.selectedGift]);
+}
 
 export default currentGameState;

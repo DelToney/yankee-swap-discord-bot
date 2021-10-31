@@ -16,6 +16,8 @@
         "@types/node": "^14.14.12",
         "discord.js": "^12.5.1",
         "dotenv": "^8.2.0",
+        "i18n": "^0.13.3",
+        "i18n-ts": "^1.0.5",
         "inversify": "^5.0.5",
         "reflect-metadata": "^0.1.13",
         "tslib": "^2.0.3",
