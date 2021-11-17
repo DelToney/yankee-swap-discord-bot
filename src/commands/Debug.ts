@@ -26,6 +26,7 @@ export abstract class Debug {
                     const inputStateStringMatch = command.content.match(/```[^{]*(\{[\s\S]*)```/imu);
                     let inputState;
                     eval('inputState = ' + inputStateStringMatch[1]);
+                    console.log('aaaa');
                     Object.assign(currentGameState, inputState);
                 } catch (err) {
                     command.reply('game state is invalid! ' + err.message);

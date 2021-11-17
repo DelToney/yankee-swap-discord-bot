@@ -1,3 +1,4 @@
+import { User } from 'discord.js';
 import { I18nResolver } from 'i18n-ts';
 import { Gamer } from './stateManager';
 
@@ -17,7 +18,9 @@ const en = {
         return items[Math.floor(Math.random() * items.length)];
     },
     youGotGame: (gameTitle: string) => `You recieved \`${gameTitle}\``,
-    gamerGotGame: (gamerName: string, gameTitle: string) => `${gamerName} recieved \`${gameTitle}\``,
+    gamerGotGame: (gamer: User, gameTitle: string) => `${gamer.toString()} recieved \`${gameTitle}\``,
+    gamerStoleGame: (from: User, to: User, gameTitle: string) =>
+        `${to.toString()} totally ripped ${from.toString()}'s game right outta their hands and got ' \`${gameTitle}\``,
     theftMessageListTitle: 'Fools to rob from:',
     addGameHelpMessage:
         "Welcome to Del's awful Yankee swap bot!\n\n Simply message me with the command `!addgame <INSERT_GAME_CODE_HERE> <INSERT_GAME_LINK_HERE>` to add your game to the yankee swap! Make sure not to let anyone else know about your gift though!",
@@ -45,8 +48,10 @@ const carson = {
         return items[Math.floor(Math.random() * items.length)];
     },
     youGotGame: (gameTitle: string) => `You got \`${gameTitle}\`. Peepee expanded by +1.`,
-    gamerGotGame: (gamerName: string, gameTitle: string) =>
-        `${gamerName} received \`${gameTitle}\`!\n..not that anyone cared..\n..or asked..`,
+    gamerStoleGame: (from: User, to: User, gameTitle: string) =>
+        `${to.toString()} totally ripped ${from.toString()}'s game right outta their hands and got ' \`${gameTitle}\``,
+    gamerGotGame: (gamer: User, gameTitle: string) =>
+        `${gamer.toString()} received \`${gameTitle}\`!\n..not that anyone cared..\n..or asked..`,
     theftMessageListTitle: 'These are the dirty amongers you can steal from:',
     addGameHelpMessage:
         "Welcome to Pogson's Poggy McWoggy Yankee Swap bot!\n\n DM me `!addgame <INSERT_GAME_CODE_HERE> <INSERT_GAME_LINK_HERE>` and I probably won't respond. If you care at all, make sure nobody know about your gift.",
